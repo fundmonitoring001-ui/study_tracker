@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💜 Study Tracker</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDURvUyCTz0K4TKQPfp28U636IKBwA3Xb8",
+  authDomain: "study-tracker-7c3e3.firebaseapp.com",
+  databaseURL: "https://study-tracker-7c3e3-default-rtdb.firebaseio.com",
+  projectId: "study-tracker-7c3e3",
+  storageBucket: "study-tracker-7c3e3.firebasestorage.app",
+  messagingSenderId: "1072252173654",
+  appId: "1:1072252173654:web:a72544ae2387c2d2b96af7"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const SESSIONS_REF = db.ref('sessions');
+const TIMER_REF = db.ref('timerState');
+</script>
+</head>
+<body>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Nunito:wght@300;400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --p:#9B59B6;--h:#FF6BAE;
+  --bg:#1a0a14;--bg2:#2d1428;--bg3:#3d1a33;
+  --glass:rgba(255,255,255,0.06);--gb:rgba(255,255,255,0.10);
+  --text:#fff0f8;--muted:rgba(255,240,248,0.55);
+  --mono:'Space Mono',monospace;--sans:'Nunito',sans-serif;
+}
+html,body{background:var(--bg);font-family:var(--sans);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent;}
+.bg-hearts{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden;}
+.fh{position:absolute;font-size:18px;opacity:0;animation:floatHeart linear infinite;}
+@keyframes floatHeart{0%{opacity:0;transform:translateY(0) scale(0.8);}15%{opacity:0.15;}85%{opacity:0.08;}100%{opacity:0;transform:translateY(-110vh) scale(1.1) rotate(20deg);}}
+.app{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:16px 12px;}
+.header{text-align:center;margin-bottom:20px;padding:12px 0 6px;}
+.header-title{font-family:var(--mono);font-size:clamp(15px,4vw,20px);font-weight:700;letter-spacing:0.07em;background:linear-gradient(135deg,#c084fc,#f472b6,#fb7185);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.header-sub{color:var(--muted);font-size:clamp(10px,2.5vw,12px);margin-top:5px;letter-spacing:0.03em;}
+.users-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+@media(max-width:600px){.users-grid{grid-template-columns:1fr;gap:12px;}}
+.user-card{background:linear-gradient(145deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03));border:1px solid var(--gb);border-radius:20px;padding:clamp(14px,3vw,22px);position:relative;overflow:hidden;backdrop-filter:blur(16px);transition:box-shadow 0.4s,border-color 0.4s;}
+.card-p{border-color:rgba(155,89,182,0.25);}.card-h{border-color:rgba(255,107,174,0.25);}
+.card-p.active{box-shadow:0 0 0 1.5px var(--p),0 0 35px rgba(155,89,182,0.28),inset 0 0 30px rgba(155,89,182,0.05);}
+.card-h.active{box-shadow:0 0 0 1.5px var(--h),0 0 40px rgba(255,107,174,0.32),inset 0 0 30px rgba(255,107,174,0.07);}
+.orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(40px);}
+.orb-p{width:140px;height:140px;top:-45px;right:-45px;background:rgba(155,89,182,0.18);}
+.orb-h{width:160px;height:160px;top:-55px;right:-55px;background:rgba(255,107,174,0.2);}
+.orb2{width:90px;height:90px;bottom:-25px;left:-25px;}
+.orb2-p{background:rgba(155,89,182,0.1);}.orb2-h{background:rgba(255,107,174,0.13);}
+.user-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.avatar{width:clamp(36px,8vw,44px);height:clamp(36px,8vw,44px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:clamp(13px,3vw,16px);font-weight:700;flex-shrink:0;}
+.av-p{background:linear-gradient(135deg,rgba(155,89,182,0.3),rgba(125,60,152,0.4));border:1.5px solid rgba(155,89,182,0.5);color:#d4aaff;}
+.av-h{background:linear-gradient(135deg,rgba(255,107,174,0.3),rgba(233,30,140,0.4));border:1.5px solid rgba(255,107,174,0.5);color:#ffb3d9;}
+.user-name{font-size:clamp(14px,3.5vw,17px);font-weight:800;}
+.user-role{font-size:clamp(9px,2vw,11px);color:var(--muted);margin-top:1px;}
+.status-pill{margin-left:auto;font-size:clamp(8px,1.8vw,9px);font-weight:700;letter-spacing:0.08em;padding:3px 8px;border-radius:20px;font-family:var(--mono);text-transform:uppercase;transition:all 0.3s;white-space:nowrap;}
+.sp-idle{background:rgba(255,255,255,0.07);color:var(--muted);}
+.sp-active-p{background:rgba(155,89,182,0.25);color:#d4aaff;animation:pulse 2s infinite;}
+.sp-active-h{background:rgba(255,107,174,0.25);color:#ffb3d9;animation:pulse 2s infinite;}
+.sp-break{background:rgba(251,191,36,0.2);color:#fbbf24;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
+.type-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.type-tab{flex:1;padding:7px 4px;border-radius:10px;font-size:clamp(10px,2.5vw,12px);font-weight:700;cursor:pointer;border:1px solid var(--gb);background:transparent;color:var(--muted);transition:all 0.2s;font-family:var(--sans);}
+.tt-active-p{background:rgba(155,89,182,0.2);color:#d4aaff;border-color:rgba(155,89,182,0.5);}
+.tt-active-h{background:rgba(255,107,174,0.2);color:#ffb3d9;border-color:rgba(255,107,174,0.5);}
+.subj-wrap{position:relative;margin-bottom:12px;}
+.subj-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;}
+.subject-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--gb);border-radius:10px;padding:9px 10px 9px 30px;color:var(--text);font-size:clamp(11px,2.8vw,13px);font-family:var(--sans);outline:none;transition:border 0.2s;}
+.subject-input:focus{border-color:rgba(155,89,182,0.5);}
+.subject-input.h-inp:focus{border-color:rgba(255,107,174,0.5);}
+.subject-input::placeholder{color:var(--muted);}
+.subject-input:disabled{opacity:0.35;cursor:not-allowed;}
+.timer-display{font-family:var(--mono);font-size:clamp(32px,8vw,48px);font-weight:700;text-align:center;margin:8px 0 2px;letter-spacing:0.04em;line-height:1;text-shadow:0 0 25px currentColor;}
+.td-p{color:#c084fc;}.td-h{color:#f472b6;}
+.break-info{text-align:center;font-size:clamp(10px,2.2vw,11px);color:#fbbf24;font-family:var(--mono);min-height:15px;margin-bottom:8px;}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.ctrl-btn{padding:clamp(9px,2.5vw,11px) 6px;border-radius:11px;font-size:clamp(11px,2.8vw,13px);font-weight:700;cursor:pointer;border:1px solid var(--gb);background:var(--glass);color:var(--text);font-family:var(--sans);transition:all 0.2s;touch-action:manipulation;}
+.ctrl-btn:hover:not(:disabled){transform:translateY(-1px);}
+.ctrl-btn:active:not(:disabled){transform:scale(0.97);}
+.ctrl-btn:disabled{opacity:0.3;cursor:not-allowed;transform:none!important;}
+.btn-start-p{background:linear-gradient(135deg,rgba(155,89,182,0.35),rgba(125,60,152,0.35));border-color:rgba(155,89,182,0.6);color:#d4aaff;}
+.btn-start-h{background:linear-gradient(135deg,rgba(255,107,174,0.35),rgba(233,30,140,0.35));border-color:rgba(255,107,174,0.6);color:#ffb3d9;}
+.btn-stop{background:linear-gradient(135deg,rgba(239,68,68,0.25),rgba(220,38,38,0.25));border-color:rgba(239,68,68,0.5);color:#fca5a5;}
+.btn-break{background:linear-gradient(135deg,rgba(251,191,36,0.2),rgba(245,158,11,0.2));border-color:rgba(251,191,36,0.4);color:#fbbf24;}
+.full-width{grid-column:1/-1;}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:13px;}
+.stat-box{background:rgba(255,255,255,0.04);border-radius:10px;padding:8px 5px;text-align:center;border:1px solid rgba(255,255,255,0.06);}
+.stat-val{font-family:var(--mono);font-size:clamp(12px,3vw,15px);font-weight:700;}
+.sv-p{color:#c084fc;}.sv-h{color:#f472b6;}
+.stat-lbl{font-size:clamp(8px,1.8vw,9px);color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.05em;}
+.love-banner{border-radius:13px;padding:11px 13px;margin-bottom:12px;display:none;align-items:flex-start;gap:9px;border:1px solid rgba(255,107,174,0.3);background:linear-gradient(135deg,rgba(255,107,174,0.1),rgba(233,30,140,0.07));animation:lovePop 0.5s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes lovePop{from{opacity:0;transform:scale(0.92) translateY(5px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.love-banner.show{display:flex;}
+.love-icon{font-size:clamp(16px,4vw,20px);flex-shrink:0;animation:heartbeat 1.4s ease-in-out infinite;}
+@keyframes heartbeat{0%,100%{transform:scale(1);}14%{transform:scale(1.25);}28%{transform:scale(1);}42%{transform:scale(1.15);}70%{transform:scale(1);}}
+.love-text{font-size:clamp(11px,2.5vw,12px);font-weight:600;color:#ffb3d9;line-height:1.5;}
+.love-from{font-size:clamp(9px,2vw,10px);color:rgba(255,179,217,0.55);margin-top:2px;font-style:italic;}
+.section-hdr{font-size:clamp(9px,2vw,11px);font-weight:700;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:13px;}
+
+/* ── VERSUS SECTION ── */
+.versus-section{background:linear-gradient(145deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid var(--gb);border-radius:20px;padding:clamp(14px,3vw,22px);margin-bottom:18px;}
+.vs-period-row{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+.vs-tab{padding:6px 14px;border-radius:20px;font-size:clamp(10px,2.5vw,12px);font-weight:700;cursor:pointer;border:1px solid var(--gb);background:transparent;color:var(--muted);font-family:var(--sans);transition:all 0.2s;touch-action:manipulation;}
+.vs-tab.sel{background:rgba(255,255,255,0.1);color:var(--text);border-color:rgba(255,255,255,0.25);}
+
+/* winner banner */
+.winner-banner{border-radius:16px;padding:clamp(14px,3vw,20px);margin-bottom:18px;text-align:center;position:relative;overflow:hidden;}
+.winner-banner.praveen-wins{background:linear-gradient(135deg,rgba(155,89,182,0.2),rgba(125,60,152,0.15));border:1.5px solid rgba(155,89,182,0.45);}
+.winner-banner.harini-wins{background:linear-gradient(135deg,rgba(255,107,174,0.2),rgba(233,30,140,0.15));border:1.5px solid rgba(255,107,174,0.45);}
+.winner-banner.tie{background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(245,158,11,0.1));border:1.5px solid rgba(251,191,36,0.35);}
+.winner-banner.no-data{background:rgba(255,255,255,0.03);border:1px solid var(--gb);}
+.winner-crown{font-size:clamp(28px,7vw,40px);display:block;margin-bottom:6px;animation:bounce 1.5s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}.
+.winner-name{font-size:clamp(18px,5vw,26px);font-weight:800;margin-bottom:4px;}
+.winner-name.p{color:#d4aaff;}.winner-name.h{color:#ffb3d9;}.winner-name.tie{color:#fbbf24;}.winner-name.nd{color:var(--muted);}
+.winner-sub{font-size:clamp(11px,2.8vw,13px);color:var(--muted);margin-bottom:2px;}
+.winner-lead{font-size:clamp(10px,2.5vw,12px);color:var(--muted);font-style:italic;}
+
+/* vs cards row */
+.vs-cards{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin-bottom:16px;}
+.vs-user-card{background:rgba(255,255,255,0.04);border-radius:14px;padding:clamp(12px,3vw,16px);text-align:center;border:1px solid rgba(255,255,255,0.07);transition:border-color 0.3s;}
+.vs-user-card.leader-p{border-color:rgba(155,89,182,0.5);background:rgba(155,89,182,0.08);}
+.vs-user-card.leader-h{border-color:rgba(255,107,174,0.5);background:rgba(255,107,174,0.08);}
+.vs-name{font-size:clamp(12px,3vw,14px);font-weight:800;margin-bottom:6px;}
+.vs-name.p{color:#d4aaff;}.vs-name.h{color:#ffb3d9;}
+.vs-time{font-family:var(--mono);font-size:clamp(18px,5vw,26px);font-weight:700;margin-bottom:4px;}
+.vs-time.p{color:#c084fc;}.vs-time.h{color:#f472b6;}
+.vs-sessions{font-size:clamp(9px,2vw,11px);color:var(--muted);}
+.vs-badge{font-size:clamp(9px,2vw,10px);font-weight:700;padding:3px 8px;border-radius:20px;margin-top:6px;display:inline-block;}
+.vs-badge.win-p{background:rgba(155,89,182,0.25);color:#d4aaff;}
+.vs-badge.win-h{background:rgba(255,107,174,0.25);color:#ffb3d9;}
+.vs-badge.tie-badge{background:rgba(251,191,36,0.2);color:#fbbf24;}
+.vs-mid{font-family:var(--mono);font-size:clamp(16px,4vw,22px);font-weight:700;color:var(--muted);text-align:center;}
+
+/* progress bar */
+.vs-bar-wrap{margin-bottom:4px;}
+.vs-bar-lbl{display:flex;justify-content:space-between;font-size:clamp(9px,2vw,10px);color:var(--muted);margin-bottom:5px;}
+.vs-bar-track{height:10px;border-radius:20px;background:rgba(255,255,255,0.07);overflow:hidden;display:flex;}
+.vs-bar-p{height:100%;background:linear-gradient(90deg,#9B59B6,#c084fc);border-radius:20px 0 0 20px;transition:width 0.8s cubic-bezier(0.34,1.2,0.64,1);}
+.vs-bar-h{height:100%;background:linear-gradient(90deg,#f472b6,#FF6BAE);border-radius:0 20px 20px 0;transition:width 0.8s cubic-bezier(0.34,1.2,0.64,1);}
+
+/* bar chart dual */
+.vs-chart-wrap{margin-top:14px;}
+.chart-lbl{font-size:clamp(9px,2vw,10px);color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;}
+
+/* ── ANALYTICS ── */
+.analytics{background:linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--gb);border-radius:20px;padding:clamp(14px,3vw,22px);margin-bottom:18px;}
+.tab-controls{display:flex;gap:6px;margin-bottom:15px;flex-wrap:wrap;align-items:center;}
+.tab-pill{padding:6px 13px;border-radius:20px;font-size:clamp(10px,2.5vw,12px);font-weight:700;cursor:pointer;border:1px solid var(--gb);background:transparent;color:var(--muted);font-family:var(--sans);transition:all 0.2s;touch-action:manipulation;}
+.tab-pill.sel{background:rgba(255,255,255,0.1);color:var(--text);border-color:rgba(255,255,255,0.2);}
+.tab-pill.sel-p{background:rgba(155,89,182,0.2);color:#d4aaff;border-color:rgba(155,89,182,0.4);}
+.tab-pill.sel-h{background:rgba(255,107,174,0.2);color:#ffb3d9;border-color:rgba(255,107,174,0.4);}
+.period-pills{margin-left:auto;display:flex;gap:5px;}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:480px){.charts-grid{grid-template-columns:1fr;}}
+.chart-card{background:rgba(255,255,255,0.03);border-radius:14px;padding:12px;border:1px solid rgba(255,255,255,0.06);}
+.history{background:linear-gradient(145deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--gb);border-radius:20px;padding:clamp(14px,3vw,22px);}
+.sess-row{display:grid;grid-template-columns:8px 1fr auto;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.sess-row:last-child{border:none;}
+.dot-p{width:8px;height:8px;border-radius:50%;background:var(--p);flex-shrink:0;}
+.dot-h{width:8px;height:8px;border-radius:50%;background:var(--h);flex-shrink:0;}
+.no-data{text-align:center;color:var(--muted);padding:24px;font-size:13px;}
+.modal-overlay{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(26,10,20,0.88);backdrop-filter:blur(10px);opacity:0;pointer-events:none;transition:opacity 0.3s;padding:16px;}
+.modal-overlay.show{opacity:1;pointer-events:all;}
+.modal{background:linear-gradient(145deg,#2d1428,#3d1a33);border:1px solid rgba(255,107,174,0.35);border-radius:24px;padding:clamp(20px,5vw,30px) clamp(18px,4vw,26px);max-width:340px;width:100%;text-align:center;animation:modalPop 0.4s cubic-bezier(0.34,1.56,0.64,1);}
+@keyframes modalPop{from{opacity:0;transform:scale(0.85);}to{opacity:1;transform:scale(1);}}
+.modal-hearts{font-size:clamp(24px,6vw,32px);margin-bottom:10px;}
+.modal-title{font-size:clamp(14px,4vw,18px);font-weight:800;margin-bottom:8px;line-height:1.3;}
+.modal-title.love{color:#ffb3d9;}.modal-title.scold{color:#fbbf24;}
+.modal-msg{font-size:clamp(12px,3vw,14px);line-height:1.7;margin-bottom:5px;}
+.modal-msg.love{color:rgba(255,179,217,0.85);}.modal-msg.scold{color:rgba(255,220,100,0.85);}
+.modal-from{font-size:clamp(9px,2.2vw,11px);color:rgba(255,179,217,0.5);font-style:italic;margin-bottom:18px;}
+.modal-btn{padding:11px 24px;border-radius:13px;font-size:clamp(12px,3vw,14px);font-weight:700;cursor:pointer;font-family:var(--sans);transition:all 0.2s;touch-action:manipulation;width:100%;}
+.modal-btn.love-btn{border:1px solid rgba(255,107,174,0.5);background:linear-gradient(135deg,rgba(255,107,174,0.3),rgba(233,30,140,0.3));color:#ffb3d9;}
+.modal-btn.scold-btn{border:1px solid rgba(251,191,36,0.5);background:linear-gradient(135deg,rgba(251,191,36,0.2),rgba(245,158,11,0.2));color:#fbbf24;}
+.modal-btn:hover{transform:translateY(-1px);}
+</style>
+
+<div class="bg-hearts" id="bgHearts"></div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-hearts" id="modalIcon">💜</div>
+    <div class="modal-title love" id="modalTitle"></div>
+    <div class="modal-msg love" id="modalMsg"></div>
+    <div class="modal-from" id="modalFrom"></div>
+    <button class="modal-btn love-btn" id="modalBtn" onclick="closeModal()">💜 சரி!</button>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="header-title">💜 STUDY TRACKER</div>
+    <div class="header-sub">Praveen & Harini · En Thangoo's Journey 🌸</div>
+  </div>
+
+  <!-- TIMER CARDS -->
+  <div class="users-grid">
+    <div class="user-card card-p" id="card-p">
+      <div class="orb orb-p"></div><div class="orb orb2 orb2-p"></div>
+      <div class="user-header">
+        <div class="avatar av-p">P</div>
+        <div><div class="user-name">Praveen</div><div class="user-role">Study + Work</div></div>
+        <span class="status-pill sp-idle" id="badge-p">IDLE</span>
+      </div>
+      <div class="type-tabs">
+        <button class="type-tab tt-active-p" onclick="setType('p','study')" id="tab-study-p">📚 Study</button>
+        <button class="type-tab" onclick="setType('p','work')" id="tab-work-p">💼 Work</button>
+      </div>
+      <div class="subj-wrap"><span class="subj-icon">📖</span><input class="subject-input" id="subj-p" placeholder="Subject / task name..."/></div>
+      <div class="timer-display td-p" id="timer-p">00:00:00</div>
+      <div class="break-info" id="break-p"></div>
+      <div class="controls">
+        <button class="ctrl-btn btn-start-p" id="btn-start-p" onclick="startSession('p')">▶ Start</button>
+        <button class="ctrl-btn btn-break" id="btn-break-p" onclick="toggleBreak('p')" disabled>⏸ Break</button>
+        <button class="ctrl-btn btn-stop full-width" id="btn-stop-p" onclick="stopSession('p')" disabled>⏹ Stop Session</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val sv-p" id="st-today-p">0m</div><div class="stat-lbl">Today</div></div>
+        <div class="stat-box"><div class="stat-val sv-p" id="st-sess-p">0</div><div class="stat-lbl">Sessions</div></div>
+        <div class="stat-box"><div class="stat-val sv-p" id="st-sub-p">—</div><div class="stat-lbl">Subject</div></div>
+      </div>
+    </div>
+    <div class="user-card card-h" id="card-h">
+      <div class="orb orb-h"></div><div class="orb orb2 orb2-h"></div>
+      <div class="user-header">
+        <div class="avatar av-h">H</div>
+        <div><div class="user-name">Harini 🌸</div><div class="user-role">En Thangoo</div></div>
+        <span class="status-pill sp-idle" id="badge-h">IDLE</span>
+      </div>
+      <div class="love-banner" id="love-banner">
+        <div class="love-icon" id="love-icon">💜</div>
+        <div><div class="love-text" id="love-text"></div><div class="love-from">— உன் Praveen 💜</div></div>
+      </div>
+      <div class="subj-wrap"><span class="subj-icon">📖</span><input class="subject-input h-inp" id="subj-h" placeholder="படிக்கும் பாடம்..."/></div>
+      <div class="timer-display td-h" id="timer-h">00:00:00</div>
+      <div class="break-info" id="break-h"></div>
+      <div class="controls">
+        <button class="ctrl-btn btn-start-h" id="btn-start-h" onclick="startSession('h')">▶ Start</button>
+        <button class="ctrl-btn btn-break" id="btn-break-h" onclick="toggleBreak('h')" disabled>⏸ Break</button>
+        <button class="ctrl-btn btn-stop full-width" id="btn-stop-h" onclick="stopSession('h')" disabled>⏹ Stop Session</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val sv-h" id="st-today-h">0m</div><div class="stat-lbl">Today</div></div>
+        <div class="stat-box"><div class="stat-val sv-h" id="st-sess-h">0</div><div class="stat-lbl">Sessions</div></div>
+        <div class="stat-box"><div class="stat-val sv-h" id="st-sub-h">—</div><div class="stat-lbl">Subject</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⚔️ VERSUS SECTION -->
+  <div class="versus-section">
+    <div class="section-hdr">⚔️ Praveen vs Harini</div>
+    <div class="vs-period-row">
+      <button class="vs-tab sel" onclick="selVsPeriod('day')" id="vs-day">Today</button>
+      <button class="vs-tab" onclick="selVsPeriod('week')" id="vs-week">This Week</button>
+      <button class="vs-tab" onclick="selVsPeriod('month')" id="vs-month">This Month</button>
+    </div>
+
+    <!-- Winner Banner -->
+    <div class="winner-banner no-data" id="winner-banner">
+      <span class="winner-crown" id="winner-crown">📊</span>
+      <div class="winner-name nd" id="winner-name">No sessions yet</div>
+      <div class="winner-sub" id="winner-sub">Start studying to see who wins!</div>
+      <div class="winner-lead" id="winner-lead"></div>
+    </div>
+
+    <!-- VS Cards -->
+    <div class="vs-cards">
+      <div class="vs-user-card" id="vs-card-p">
+        <div class="vs-name p">💜 Praveen</div>
+        <div class="vs-time p" id="vs-time-p">0h 0m</div>
+        <div class="vs-sessions" id="vs-sess-p">0 sessions</div>
+        <div id="vs-badge-p"></div>
+      </div>
+      <div class="vs-mid">VS</div>
+      <div class="vs-user-card" id="vs-card-h">
+        <div class="vs-name h">🌸 Harini</div>
+        <div class="vs-time h" id="vs-time-h">0h 0m</div>
+        <div class="vs-sessions" id="vs-sess-h">0 sessions</div>
+        <div id="vs-badge-h"></div>
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="vs-bar-wrap">
+      <div class="vs-bar-lbl"><span style="color:#c084fc">💜 Praveen</span><span style="color:#f472b6">Harini 🌸</span></div>
+      <div class="vs-bar-track">
+        <div class="vs-bar-p" id="vs-bar-p" style="width:50%"></div>
+        <div class="vs-bar-h" id="vs-bar-h" style="width:50%"></div>
+      </div>
+    </div>
+
+    <!-- Dual bar chart -->
+    <div class="vs-chart-wrap">
+      <div class="chart-lbl">Daily breakdown (last 7 days)</div>
+      <div style="position:relative;height:clamp(140px,30vw,180px)">
+        <canvas id="vsBarC" role="img" aria-label="Praveen vs Harini study time comparison">Study comparison chart</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- INDIVIDUAL ANALYTICS -->
+  <div class="analytics">
+    <div class="section-hdr">Individual Analytics</div>
+    <div class="tab-controls">
+      <button class="tab-pill sel-p" onclick="selUser('p')" id="asw-p">💜 Praveen</button>
+      <button class="tab-pill" onclick="selUser('h')" id="asw-h">🌸 Harini</button>
+      <div class="period-pills">
+        <button class="tab-pill sel" onclick="selPeriod('day')" id="tp-day">Day</button>
+        <button class="tab-pill" onclick="selPeriod('week')" id="tp-week">Week</button>
+        <button class="tab-pill" onclick="selPeriod('month')" id="tp-month">Month</button>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card"><div class="chart-lbl">Subject split</div><div style="position:relative;height:clamp(150px,32vw,190px)"><canvas id="pieC" role="img" aria-label="Subject pie chart">Subject split</canvas></div></div>
+      <div class="chart-card"><div class="chart-lbl">Time studied</div><div style="position:relative;height:clamp(150px,32vw,190px)"><canvas id="barC" role="img" aria-label="Time bar chart">Time studied</canvas></div></div>
+    </div>
+  </div>
+
+  <div class="history">
+    <div class="section-hdr">Session History</div>
+    <div id="hist-list"><div class="no-data">No sessions yet 💜</div></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const SK='tracker_v6',TSK='tracker_ts_v6';
+let sessions=[];
+let timerState={};
+let aUser='p',aPeriod='day',vsPeriod='day';
+let pieInst=null,barInst=null,vsBarInst=null;
+let ticks={p:null,h:null};
+let breakAlertSent={p:false,h:false};
+let sessionsRestored=false;
+
+const START_MSGS=[
+  {icon:'💜',title:'என் தங்கூ படிக்கிறா! 🌸',msg:'நீ படிக்கும் போது என் மனசு ரொம்ப சந்தோஷமா இருக்கு.\nகஷ்டப்பட்டு படி, உன்னோட கனவு நிறைவேறும்! 💫',from:'உன்னை நேசிக்கும் Praveen',type:'love'},
+  {icon:'🌸',title:'படி படி என் அன்பே! 📚',msg:'உன் ஒவ்வொரு முயற்சியும் என்னோட பெருமை.\nசோர்வு வந்தாலும் நான் இருக்கேன் — always! 💜',from:'உன் Praveen',type:'love'},
+  {icon:'✨',title:'என் smart thangoo! 🧠',msg:'Hardworking-ஆ படிக்கிற என்னோட அழகான thangoo நீ.\nBreak-ல என்னோட நினைவு வரணும்! 😘',from:'உன்னை காதலிக்கும் Praveen',type:'love'},
+  {icon:'🫶',title:'ஆரம்பிக்கலாம் en thangoo!',msg:'Focus பண்ணு, நீ நினைச்சதை எல்லாம் achieve பண்ணுவ.\nUniverse உனக்காக ready-ஆ இருக்கு! 🌙',from:'Praveen — always yours 💜',type:'love'},
+];
+const END_GOOD_MSGS=[
+  {icon:'🎉',title:'Superaa padichitaa! 🌟',msg:'இன்னைக்கு நீ படிச்சதுக்கு என்னோட மனசு மலர்ந்துச்சு.\nOre oru kiss உனக்கு — virtual! 😘💜',from:'உன் proud Praveen',type:'love'},
+  {icon:'💜',title:'Well done, en thangoo! ✨',msg:'Hard work எப்போவும் வீணாகாது.\nNee padichathukku naan romba happy! 🌸',from:'உன்னை நேசிக்கும் Praveen',type:'love'},
+  {icon:'🌙',title:'Rest எடு, en amuthae! 🫶',msg:'படிப்பு முடிஞ்சது — இப்போ relax பண்ணு.\nUn smile-ஐ நான் miss பண்றேன்! 😊💜',from:'Praveen — your person always',type:'love'},
+];
+const END_SHORT_MSGS=[
+  {icon:'😤',title:'30 mins போதுமா?! 🙄',msg:'30 mins podhumah? Konjam neram arpm thiripu vandhu padi!\nUn future-ku nee dhaan responsible! 📚',from:'— கோபமான உன் Praveen 😤',type:'scold'},
+  {icon:'🤨',title:'Ithukkaa padichaa?! 😒',msg:'Ivvalavu nerathula enna padichaa nee?\nThiripu po, konjam neram kooda padi! Seriyaa? 📖',from:'— disappointed Praveen',type:'scold'},
+  {icon:'😑',title:'Enna idhu thangoo! 😤',msg:'Half hour-e aagathe? Ezhun, po, padi!\nNaan watch panni irukken! 👀',from:'— strict Praveen 😤',type:'scold'},
+];
+const BREAK_LONG_MSGS=[
+  {icon:'🐃',title:'Eruma maadu ukkandhu padi! 😤',msg:'Evlo neram break-uh?! 30 minutes thaandi pochu!\nEruma maadu ukkandhu padikiradhaa? Ezhundiru! 📚',from:'— romba kovam aana Praveen 😤',type:'scold'},
+  {icon:'😡',title:'En thangoo!! Break mudinju padiii!',msg:'30 minutes-ku mela break-aa?! Enna aachu?!\nPhone vekkuda, book edukkuda — padikkuda! 😤',from:'— super kovam Praveen 💢',type:'scold'},
+  {icon:'🙄',title:'Idhu break-aa illa thokkam-aa?! 😒',msg:'Indha madhiri break eduthaa exam-la enna yazhudhuvaa?!\nEzhu — ezhundhu padi, right now! ⏰',from:'— un ovvoru second count pannura Praveen',type:'scold'},
+];
+const LOVE_BANNER_MSGS=[
+  {icon:'💜',text:'படி படி en thangoo! உன்னோட success-ஐ காத்திருக்கேன்! 🌸'},
+  {icon:'🌸',text:'Focus பண்ணு en amuthae! உன்னோட கனவு அருகில் வருது ✨'},
+  {icon:'🫶',text:'Break-ல என்னை நினைச்சுக்கோ, ஆனா படிக்கும் போது focus! 😘'},
+  {icon:'💫',text:'En thangoo-வின் ஒவ்வொரு minute of study-யும் precious! 💜'},
+];
+
+function rnd(a){return a[Math.floor(Math.random()*a.length)];}
+function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;return[h,m,ss].map(x=>String(x).padStart(2,'0')).join(':');}
+function fmtShort(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?h+'h '+m+'m':m+'m';}
+function today(){const d=new Date();const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${day}`;}
+function save(){
+  const obj={};
+  sessions.forEach(s=>{obj[s.id]=s;});
+  SESSIONS_REF.set(obj).catch(e=>console.error('save err',e));
+}
+function saveTS(){
+  TIMER_REF.set(timerState).catch(e=>console.error('saveTS err',e));
+}
+
+function showModal(m){
+  const sc=m.type==='scold';
+  document.getElementById('modalIcon').textContent=m.icon;
+  document.getElementById('modalIcon').style.animation=sc?'none':'heartbeat 1.4s ease-in-out infinite';
+  const t=document.getElementById('modalTitle');t.textContent=m.title;t.className='modal-title '+(sc?'scold':'love');
+  const msg=document.getElementById('modalMsg');msg.textContent=m.msg;msg.className='modal-msg '+(sc?'scold':'love');
+  document.getElementById('modalFrom').textContent=m.from;
+  const btn=document.getElementById('modalBtn');
+  btn.className='modal-btn '+(sc?'scold-btn':'love-btn');
+  btn.textContent=sc?'😭 சரி, போய் படிக்கிறேன்!':'💜 Thank you Praveen!';
+  document.getElementById('modalOverlay').className='modal-overlay show';
+  if(!sc) spawnHearts(16);
+}
+function closeModal(){document.getElementById('modalOverlay').className='modal-overlay';}
+
+function spawnHearts(n){
+  const c=document.getElementById('bgHearts');
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');el.className='fh';
+    el.textContent=['💜','🌸','💕','✨','🫶'][Math.floor(Math.random()*5)];
+    el.style.left=Math.random()*100+'%';el.style.bottom='0';
+    el.style.animationDuration=(6+Math.random()*8)+'s';
+    el.style.animationDelay=(Math.random()*2)+'s';
+    c.appendChild(el);setTimeout(()=>el.remove(),13000);
+  }
+}
+
+function getElapsed(u){
+  const ts=timerState[u];
+  if(!ts||!ts.running) return ts?ts.savedElapsed||0:0;
+  let bMs=ts.breakTotal||0;
+  if(ts.onBreak&&ts.breakStart) bMs+=(Date.now()-ts.breakStart);
+  return Math.max(0,Math.floor((Date.now()-ts.startTime-bMs)/1000));
+}
+function getCurBreakSec(u){
+  const ts=timerState[u];
+  if(!ts||!ts.onBreak||!ts.breakStart) return 0;
+  return Math.floor((Date.now()-ts.breakStart)/1000);
+}
+
+function setType(u,t){
+  timerState[u]=timerState[u]||{};timerState[u].type=t;saveTS();
+  ['study','work'].forEach(x=>{const el=document.getElementById('tab-'+x+'-'+u);if(el)el.className='type-tab'+(x===t?' tt-active-'+u:'');});
+}
+function updateBadge(u,st){
+  const b=document.getElementById('badge-'+u);
+  if(st==='active'){b.className='status-pill sp-active-'+u;b.textContent='ACTIVE';}
+  else if(st==='break'){b.className='status-pill sp-break';b.textContent='BREAK';}
+  else{b.className='status-pill sp-idle';b.textContent='IDLE';}
+}
+function updateBtns(u,on){
+  document.getElementById('btn-start-'+u).disabled=on;
+  document.getElementById('btn-break-'+u).disabled=!on;
+  document.getElementById('btn-stop-'+u).disabled=!on;
+}
+function showLoveBanner(show){
+  const b=document.getElementById('love-banner');
+  if(show){const m=rnd(LOVE_BANNER_MSGS);document.getElementById('love-icon').textContent=m.icon;document.getElementById('love-text').textContent=m.text;b.className='love-banner show';}
+  else b.className='love-banner';
+}
+
+function startSession(u){
+  const ts=timerState[u]||{};if(ts.running) return;
+  const subj=document.getElementById('subj-'+u).value.trim()||'General';
+  timerState[u]={running:true,onBreak:false,startTime:Date.now(),breakStart:null,breakTotal:0,savedElapsed:0,type:ts.type||'study',subject:subj};
+  saveTS();breakAlertSent[u]=false;
+  updateBadge(u,'active');updateBtns(u,true);
+  document.getElementById('card-'+u).classList.add('active');
+  if(u==='h'){showLoveBanner(true);showModal(rnd(START_MSGS));spawnHearts(12);}
+  startTick(u);
+}
+function startTick(u){
+  // Always clear any existing interval first — this is critical to prevent duplicate ticks
+  if(ticks[u]) clearInterval(ticks[u]);
+  ticks[u]=null;
+  ticks[u]=setInterval(()=>{
+    const ts=timerState[u];if(!ts||!ts.running) return;
+    if(!ts.onBreak){
+      document.getElementById('timer-'+u).textContent=fmt(getElapsed(u));
+      updateCurrentStat(u);
+    } else {
+      const bSec=getCurBreakSec(u);
+      document.getElementById('break-'+u).textContent='⏸ Break · '+fmt(bSec);
+      if(u==='h'&&bSec>=1800&&!breakAlertSent[u]){breakAlertSent[u]=true;showModal(rnd(BREAK_LONG_MSGS));}
+    }
+  },1000);
+}
+function toggleBreak(u){
+  const ts=timerState[u];if(!ts||!ts.running) return;
+  if(!ts.onBreak){
+    ts.onBreak=true;ts.breakStart=Date.now();timerState[u]=ts;saveTS();
+    updateBadge(u,'break');document.getElementById('btn-break-'+u).textContent='▶ Resume';
+  } else {
+    ts.breakTotal=(ts.breakTotal||0)+(Date.now()-ts.breakStart);
+    ts.onBreak=false;ts.breakStart=null;timerState[u]=ts;saveTS();
+    document.getElementById('break-'+u).textContent='';
+    document.getElementById('btn-break-'+u).textContent='⏸ Break';
+    updateBadge(u,'active');breakAlertSent[u]=false;
+  }
+}
+function stopSession(u){
+  const ts=timerState[u];if(!ts||!ts.running) return;
+  // Stop tick FIRST before reading elapsed, so no extra seconds sneak in
+  if(ticks[u]){clearInterval(ticks[u]);ticks[u]=null;}
+  const netSec=Math.max(0,getElapsed(u));
+  const brkSec=Math.floor(((ts.breakTotal||0)+(ts.onBreak&&ts.breakStart?Date.now()-ts.breakStart:0))/1000);
+  sessions.push({id:Date.now(),user:u==='p'?'Praveen':'Harini',type:ts.type||'study',
+    subject:document.getElementById('subj-'+u).value.trim()||ts.subject||'General',
+    startTime:ts.startTime,endTime:Date.now(),breakSec:brkSec,netSec,date:today()});
+  save();
+  timerState[u]={running:false,type:ts.type||'study'};saveTS();
+  document.getElementById('timer-'+u).textContent='00:00:00';
+  document.getElementById('break-'+u).textContent='';
+  document.getElementById('subj-'+u).value='';
+  document.getElementById('btn-break-'+u).textContent='⏸ Break';
+  updateBadge(u,'idle');updateBtns(u,false);
+  document.getElementById('card-'+u).classList.remove('active');
+  if(u==='h'){showLoveBanner(false);if(netSec<1800)showModal(rnd(END_SHORT_MSGS));else{showModal(rnd(END_GOOD_MSGS));spawnHearts(18);}}
+  updateStats();renderHistory();renderCharts();renderVs();
+}
+function updateCurrentStat(u){
+  const s=document.getElementById('subj-'+u).value.trim();
+  document.getElementById('st-sub-'+u).textContent=(s||timerState[u]?.subject||'—').slice(0,8);
+}
+function updateStats(){
+  ['p','h'].forEach(u=>{
+    const uN=u==='p'?'Praveen':'Harini';
+    const td=sessions.filter(s=>s.user===uN&&s.date===today());
+    document.getElementById('st-today-'+u).textContent=fmtShort(td.reduce((a,s)=>a+s.netSec,0))||'0m';
+    document.getElementById('st-sess-'+u).textContent=td.length;
+  });
+}
+
+// ── VS LOGIC ─────────────────────────────────────────
+function getVsData(period){
+  const now=new Date();
+  const filter=(s,uN)=>{
+    if(s.user!==uN) return false;
+    const d=new Date(s.date);
+    if(period==='day') return s.date===today();
+    if(period==='week') return(now-d)/86400000>=0&&(now-d)/86400000<7;
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  };
+  const pSec=sessions.filter(s=>filter(s,'Praveen')).reduce((a,s)=>a+s.netSec,0);
+  const hSec=sessions.filter(s=>filter(s,'Harini')).reduce((a,s)=>a+s.netSec,0);
+  const pSess=sessions.filter(s=>filter(s,'Praveen')).length;
+  const hSess=sessions.filter(s=>filter(s,'Harini')).length;
+  return{pSec,hSec,pSess,hSess};
+}
+
+function selVsPeriod(p){
+  vsPeriod=p;
+  ['day','week','month'].forEach(x=>document.getElementById('vs-'+x).className='vs-tab'+(x===p?' sel':''));
+  renderVs();
+}
+
+function renderVs(){
+  const{pSec,hSec,pSess,hSess}=getVsData(vsPeriod);
+  const total=pSec+hSec;
+
+  // winner banner
+  const wb=document.getElementById('winner-banner');
+  const wc=document.getElementById('winner-crown');
+  const wn=document.getElementById('winner-name');
+  const ws=document.getElementById('winner-sub');
+  const wl=document.getElementById('winner-lead');
+
+  if(total===0){
+    wb.className='winner-banner no-data';wc.textContent='📊';
+    wn.className='winner-name nd';wn.textContent='No sessions yet';
+    ws.textContent='Start studying to see who wins!';wl.textContent='';
+  } else if(pSec===hSec){
+    wb.className='winner-banner tie';wc.textContent='🤝';
+    wn.className='winner-name tie';wn.textContent="It's a Tie! 🤝";
+    ws.textContent='Both studied equally — perfect balance!';
+    wl.textContent=fmtShort(pSec)+' each';
+  } else if(pSec>hSec){
+    wb.className='winner-banner praveen-wins';wc.textContent='👑';
+    wn.className='winner-name p';wn.textContent='Praveen Wins! 💜';
+    ws.textContent='Praveen studied more '+labelFor(vsPeriod);
+    wl.textContent='Leads by '+fmtShort(pSec-hSec)+' · '+fmtShort(pSec)+' vs '+fmtShort(hSec);
+  } else {
+    wb.className='winner-banner harini-wins';wc.textContent='👑';
+    wn.className='winner-name h';wn.textContent='Harini Wins! 🌸';
+    ws.textContent='En Thangoo studied more '+labelFor(vsPeriod)+'! 🎉';
+    wl.textContent='Leads by '+fmtShort(hSec-pSec)+' · '+fmtShort(hSec)+' vs '+fmtShort(pSec);
+  }
+
+  // vs cards
+  document.getElementById('vs-time-p').textContent=fmtShort(pSec)||'0m';
+  document.getElementById('vs-time-h').textContent=fmtShort(hSec)||'0m';
+  document.getElementById('vs-sess-p').textContent=pSess+' session'+(pSess!==1?'s':'');
+  document.getElementById('vs-sess-h').textContent=hSess+' session'+(hSess!==1?'s':'');
+
+  const cp=document.getElementById('vs-card-p');const ch=document.getElementById('vs-card-h');
+  const bp=document.getElementById('vs-badge-p');const bh=document.getElementById('vs-badge-h');
+  cp.className='vs-user-card';ch.className='vs-user-card';
+  bp.innerHTML='';bh.innerHTML='';
+
+  if(total>0){
+    if(pSec>hSec){
+      cp.className='vs-user-card leader-p';
+      bp.innerHTML='<span class="vs-badge win-p">👑 Leading</span>';
+    } else if(hSec>pSec){
+      ch.className='vs-user-card leader-h';
+      bh.innerHTML='<span class="vs-badge win-h">👑 Leading</span>';
+    } else {
+      bp.innerHTML='<span class="vs-badge tie-badge">🤝 Tied</span>';
+      bh.innerHTML='<span class="vs-badge tie-badge">🤝 Tied</span>';
+    }
+  }
+
+  // progress bar
+  const pPct=total>0?Math.round(pSec/total*100):50;
+  const hPct=100-pPct;
+  document.getElementById('vs-bar-p').style.width=pPct+'%';
+  document.getElementById('vs-bar-h').style.width=hPct+'%';
+
+  // dual bar chart — last 7 days always
+  const days=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');
+    days.push(`${y}-${mo}-${dy}`);
+  }
+  const labels=days.map(d=>new Date(d).toLocaleDateString('en',{weekday:'short'}));
+  const pData=days.map(d=>Math.round(sessions.filter(s=>s.user==='Praveen'&&s.date===d).reduce((a,s)=>a+s.netSec,0)/60));
+  const hData=days.map(d=>Math.round(sessions.filter(s=>s.user==='Harini'&&s.date===d).reduce((a,s)=>a+s.netSec,0)/60));
+
+  if(vsBarInst) vsBarInst.destroy();
+  vsBarInst=new Chart(document.getElementById('vsBarC').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Praveen',data:pData,backgroundColor:'rgba(155,89,182,0.5)',borderColor:'#c084fc',borderWidth:1.5,borderRadius:5},
+      {label:'Harini',data:hData,backgroundColor:'rgba(255,107,174,0.5)',borderColor:'#f472b6',borderWidth:1.5,borderRadius:5},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{color:'rgba(255,240,248,0.7)',font:{size:10,family:'Nunito'},boxWidth:10,padding:10}}},
+      scales:{
+        x:{ticks:{color:'rgba(255,240,248,0.45)',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'rgba(255,240,248,0.45)',font:{size:10},callback:v=>v+'m'},grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    }
+  });
+}
+
+function labelFor(p){return p==='day'?'today':p==='week'?'this week':'this month';}
+
+// ── INDIVIDUAL ANALYTICS ──────────────────────────────
+function selUser(u){
+  aUser=u;
+  document.getElementById('asw-p').className='tab-pill'+(u==='p'?' sel-p':'');
+  document.getElementById('asw-h').className='tab-pill'+(u==='h'?' sel-h':'');
+  renderCharts();
+}
+function selPeriod(p){
+  aPeriod=p;
+  ['day','week','month'].forEach(x=>document.getElementById('tp-'+x).className='tab-pill'+(x===p?' sel':''));
+  renderCharts();
+}
+function getFiltered(){
+  const uN=aUser==='p'?'Praveen':'Harini';const now=new Date();
+  return sessions.filter(s=>{
+    if(s.user!==uN) return false;
+    const d=new Date(s.date);
+    if(aPeriod==='day') return s.date===today();
+    if(aPeriod==='week') return(now-d)/86400000>=0&&(now-d)/86400000<7;
+    return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+  });
+}
+const COLS=['#c084fc','#f472b6','#fb923c','#34d399','#60a5fa','#f59e0b','#a78bfa','#f87171'];
+function renderCharts(){
+  const data=getFiltered();const col=aUser==='p'?'#c084fc':'#f472b6';
+  const subjMap={};data.forEach(s=>{subjMap[s.subject]=(subjMap[s.subject]||0)+s.netSec;});
+  const pLabels=Object.keys(subjMap);const pData=pLabels.map(k=>Math.round(subjMap[k]/60));
+  if(pieInst) pieInst.destroy();
+  pieInst=new Chart(document.getElementById('pieC').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:pLabels.length?pLabels:['No data'],datasets:[{data:pData.length?pData:[1],backgroundColor:pData.length?COLS.slice(0,pLabels.length):['rgba(255,255,255,0.08)'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:pLabels.length>0,position:'bottom',labels:{color:'rgba(255,240,248,0.6)',font:{size:10,family:'Nunito'},boxWidth:9,padding:6}}}}
+  });
+  let bLabels=[],bData=[];
+  if(aPeriod==='day'){bLabels=pLabels;bData=pData;}
+  else if(aPeriod==='week'){
+    const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const y=d.getFullYear(),mo=String(d.getMonth()+1).padStart(2,'0'),dy=String(d.getDate()).padStart(2,'0');days.push(`${y}-${mo}-${dy}`);}
+    bLabels=days.map(d=>new Date(d+'T00:00:00').toLocaleDateString('en',{weekday:'short'}));
+    bData=days.map(d=>Math.round(data.filter(s=>s.date===d).reduce((a,s)=>a+s.netSec,0)/60));
+  } else {
+    bLabels=['W1','W2','W3','W4','W5'];bData=[0,0,0,0,0];
+    data.forEach(s=>{const w=Math.floor((new Date(s.date).getDate()-1)/7);bData[Math.min(w,4)]+=s.netSec;});
+    bData=bData.map(x=>Math.round(x/60));
+  }
+  if(barInst) barInst.destroy();
+  barInst=new Chart(document.getElementById('barC').getContext('2d'),{
+    type:'bar',
+    data:{labels:bLabels,datasets:[{label:'Minutes',data:bData,backgroundColor:col+'44',borderColor:col,borderWidth:1.5,borderRadius:7}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{ticks:{color:'rgba(255,240,248,0.45)',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},
+      y:{ticks:{color:'rgba(255,240,248,0.45)',font:{size:10},callback:v=>v+'m'},grid:{color:'rgba(255,255,255,0.04)'}}
+    }}
+  });
+}
+
+function renderHistory(){
+  const list=document.getElementById('hist-list');
+  if(!sessions.length){list.innerHTML='<div class="no-data">No sessions yet 💜</div>';return;}
+  list.innerHTML=[...sessions].reverse().slice(0,12).map(s=>{
+    const u=s.user==='Praveen'?'p':'h';
+    const t=new Date(s.startTime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    return`<div class="sess-row"><div class="dot-${u}"></div>
+      <div><div style="font-weight:700;font-size:clamp(11px,2.8vw,13px)">${s.subject} <span style="font-size:clamp(9px,2vw,10px);color:var(--muted);text-transform:uppercase">${s.type}</span></div>
+      <div style="font-size:clamp(9px,2vw,11px);color:var(--muted)">${s.user} · ${s.date} ${t}${s.breakSec>0?' · brk '+fmt(s.breakSec):''}</div></div>
+      <div style="font-family:var(--mono);font-size:clamp(11px,2.8vw,13px);color:${u==='p'?'#c084fc':'#f472b6'}">${fmt(s.netSec)}</div></div>`;
+  }).join('');
+}
+
+function restoreSessions(){
+  ['p','h'].forEach(u=>{
+    const ts=timerState[u];
+    if(ts&&ts.running){
+      updateBadge(u,ts.onBreak?'break':'active');updateBtns(u,true);
+      document.getElementById('card-'+u).classList.add('active');
+      if(u==='h') showLoveBanner(true);
+      if(ts.onBreak) document.getElementById('btn-break-'+u).textContent='▶ Resume';
+      document.getElementById('timer-'+u).textContent=fmt(getElapsed(u));
+      if(ts.subject) document.getElementById('subj-'+u).value=ts.subject;
+      if(ts.type) setType(u,ts.type);
+      startTick(u);
+    }
+  });
+}
+
+function initBgHearts(){
+  for(let i=0;i<5;i++) spawnHearts(1);
+  setInterval(()=>spawnHearts(1),5000);
+}
+
+function init(){
+  initBgHearts();
+  SESSIONS_REF.on('value',snap=>{
+    const data=snap.val();
+    sessions=data?Object.values(data).sort((a,b)=>Number(a.id)-Number(b.id)):[];
+    updateStats();renderHistory();renderCharts();renderVs();
+  });
+  TIMER_REF.on('value',snap=>{
+    const data=snap.val();
+    if(data){
+      // Only fully restore on first load; after that just update state values
+      const isFirstLoad = !sessionsRestored;
+      timerState=data;
+      ['p','h'].forEach(u=>{
+        const ts=timerState[u];
+        if(!ts)return;
+        ts.startTime=ts.startTime?Number(ts.startTime):null;
+        ts.breakStart=ts.breakStart?Number(ts.breakStart):null;
+        ts.breakTotal=Number(ts.breakTotal||0);
+        ts.savedElapsed=Number(ts.savedElapsed||0);
+      });
+      if(isFirstLoad){
+        sessionsRestored=true;
+        restoreSessions();
+      }
+    }
+  });
+  setInterval(()=>{
+    const anyRunning=['p','h'].some(u=>timerState[u]&&timerState[u].running);
+    if(anyRunning) saveTS();
+  },5000);
+}
+init();
+</script>
+</body>
+</html>
